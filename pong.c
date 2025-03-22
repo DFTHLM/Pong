@@ -64,18 +64,18 @@ int gameloop(int score_p1, int score_p2) {
             y_p1++;
         }
 
+        y_p2 = ball_y - 4 + (ball_dy * cpu_lag);
+
+        if (y_p2 < 0) {
+            y_p2 = 0;
+        } else if (y_p2 > max_y - 10) {
+            y_p2 = max_y - 10;
+        }
+
         if (ball_frame % 3 == 0 && ball_frame != 0) {
 
             if (ball_frame % 20 == 0) {
                 cpu_lag += (rand() % 4) - 1;
-            }
-
-            y_p2 = ball_y - 4 + (ball_dy * cpu_lag);
-
-            if (y_p2 < 0) {
-                y_p2 = 0;
-            } else if (y_p2 > max_y - 10) {
-                y_p2 = max_y - 10;
             }
 
             if (ball_x < 6) {
