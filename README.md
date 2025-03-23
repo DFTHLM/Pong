@@ -1,7 +1,7 @@
 # Pong in C
 
-This is a simple implementation of the classic game Pong in C using the ncurses library.
-It's a terminal game against a CPU opponent. It's also my first project in C.
+This is a simple Pong game in C using the ncurses library.
+It's a terminal game against a CPU opponent. It's also my first project in C. Close using Ctrl-C
 
 ### How to play
 Move the left paddle using 'W' and 'S'.
