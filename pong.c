@@ -5,105 +5,151 @@
 
 #define DELAY 16000
 
-void draw_ball(int x, int y, int r) {
+typedef struct game_object {
+    int x, y;
+    int dx, dy;
+    int width;
+    int height;
+} game_object;
 
-    for (int i = 0; i <= r / 2; i++) {
-        for (int j = 0; j <= r; j++) {
-            mvprintw(y + i, x + j, " ");
+void draw_object(game_object obj) {
+    for (int i = 0; i < obj.width - 1; i++) {
+        for (int j = 0; j < obj.height - 1; j++) {
+            mvprintw(obj.y + j, obj.x + i, " ");
         }
     }
 }
 
-void draw_paddle(int x, int y){
-    for (int i = 0; i < 10; i++) {
-        for (int j = 0; j < 4; j++) {
-            mvprintw(y + i, x + j, " ");
+int checkCollision(game_object a, game_object b) {
+    int left = (a.x + a.width) - b.x;   // How much A is inside B on the left
+    int right = (b.x + b.width) - a.x;  // A is inside B from the right
+                                                  //
+    int top = (a.y + a.height) - b.y;  // How much A is inside B on the top
+    int bottom = (b.y + b.height) - a.y; 
+
+
+    if (a.x < b.x + b.width &&
+        a.x + a.width > b.x &&
+        a.y < b.y + b.height &&
+        a.y + a.height > b.y) {
+
+        int dx = left < right ? left : right;
+        int dy = top < bottom ? top : bottom;
+
+        if (dx == dy) {
+            return 3;
         }
+
+        return dx < dy ? 1 : 2;
     }
+
+    return 0;
 }
 
 int gameloop(int score_p1, int score_p2) {
-    int y_p2 = 0;
-    int y_p1 = 0;
     int max_x = 0;
     int max_y = 0;
-
-    int ball_x = 0;
-    int ball_y = 0;
-    int radius = 4;
     int ball_frame = 0;
-
-    getmaxyx(stdscr, ball_y, ball_x);
-    ball_x = ball_x / 2;
-    ball_y = ball_y / 2;
-
-    y_p1 = ball_y - 4;
-    y_p2 = ball_y - 4;
-
-    int ball_dx = rand() % 2 == 0 ? 1 : -1;
-    int ball_dy = rand() % 2 == 0 ? 1 : -1;
-
     int game_over = 0;
     int cpu_lag = 1;
+    
+    game_object ball = {0, 0, 0, 0, 5, 3};
+    game_object paddle1 = {0, 0, 0, 0, 5, 11};
+    game_object paddle2 = {0, 0, 0, 0, 5, 11};
+    game_object arena_top = {0, 0, 0, 0, 0, 1};
+    game_object arena_bottom = {0, 0, 0, 0, 0, 1};
+
+
+    getmaxyx(stdscr, max_y, max_x);
+
+    arena_top.width = max_x;
+
+    arena_bottom.y = max_y;
+    arena_bottom.width = max_x;
+    arena_bottom.height = 1;
+
+    ball.x = max_x / 2;
+    ball.y = max_y / 2;
+
+    paddle1.x = 10;
+    paddle1.y = ball.y - (paddle1.height / 2) - ball.height;
+
+    paddle2.x = max_x - 10;
+    paddle2.y = ball.y - (paddle1.height / 2) - ball.height;
+
+    ball.dx = rand() % 2 == 0 ? 1 : -1;
+    ball.dy = rand() % 2 == 0 ? 1 : -1;
 
     while(1) {
         clear();
         getmaxyx(stdscr, max_y, max_x);
-        draw_paddle(10, y_p1);
-        draw_paddle(max_x - 14, y_p2);
-        draw_ball(ball_x, ball_y, radius);
+        draw_object(ball);
+        draw_object(paddle1);
+        draw_object(paddle2);
         mvprintw(5, max_x / 4, "%d", score_p1);
         mvprintw(5, max_x - (max_x / 4), "%d", score_p2);
+        mvprintw(0, 0, "CPU LAG: %d", cpu_lag);
         refresh();
 
         int k = getch();
 
-        if (y_p1 >= 0 && k == 'w') {
-            y_p1--;
-        }else if (y_p1 <= max_y - 10 && k == 's') {
-            y_p1++;
+        if (paddle1.y >= 0 && k == 'w') {
+            paddle1.y--;
+        }else if (paddle1.y <= max_y - paddle1.height && k == 's') {
+            paddle1.y++;
         }
 
-        y_p2 = ball_y - 4 + (ball_dy * cpu_lag);
+        int paddle2_center = paddle2.y + (paddle2.height / 2);
 
-        if (y_p2 < 0) {
-            y_p2 = 0;
-        } else if (y_p2 > max_y - 10) {
-            y_p2 = max_y - 10;
+        if (paddle2_center + abs(cpu_lag) < ball.y) {
+            paddle2.y += 1;
+        } else if (paddle2_center - abs(cpu_lag) > ball.y) {
+            paddle2.y -= 1;
+        }
+
+
+        if (paddle2.y < 0) {
+            paddle2.y = 0;
+        } else if (paddle2.y > max_y - paddle2.height + 1) {
+            paddle2.y = max_y - paddle2.height + 1;
         }
 
         if (ball_frame % 3 == 0 && ball_frame != 0) {
 
             if (ball_frame % 20 == 0) {
-                cpu_lag += (rand() % 4) - 1;
+                cpu_lag += (rand() % 3) - 1;
             }
 
-            if (ball_x < 6) {
+            if (ball.x < 6) {
                 game_over = -1;
                 break;
-            } else if (ball_x > max_x - 6) {
+            } else if (ball.x > max_x - 6) {
                 game_over = 1;
                 break;
             }
 
-            if (ball_y <= 0 || ball_y >= max_y - radius) {
-                ball_dy = -ball_dy;
+            int collision = checkCollision(ball, paddle1);
+            if (collision == 1) ball.dx = -ball.dx;
+            if (collision == 2) ball.dy = -ball.dy;
+            if (collision == 3) {
+                ball.dx = -ball.dx;
+                ball.dy = -ball.dy;
             }
 
-            if (ball_x >= 10 && ball_x <= 10 + radius) {
-                if ( (ball_y > y_p1 && ball_y < y_p1 + 10) || (ball_y + radius > y_p1 && ball_y + radius < y_p1 + 10)){
-                    ball_dx = -ball_dx;
-                }
+            collision = checkCollision(ball, paddle2);
+            if (collision == 1) ball.dx = -ball.dx;
+            if (collision == 2) ball.dy = -ball.dy;
+            if (collision == 3) {
+                ball.dx = -ball.dx;
+                ball.dy = -ball.dy;
             }
 
-            if (ball_x >= max_x - 14 - radius && ball_x <= max_x - 10) {
-                if ( (ball_y > y_p2 && ball_y < y_p2 + 10) || (ball_y + radius > y_p2 && ball_y + radius < y_p2 + 10)){
-                    ball_dx = -ball_dx;
-                }
+            if (checkCollision(ball, arena_top) == 2 || checkCollision(ball, arena_bottom) == 2) {
+                ball.dy = -ball.dy;
             }
 
-            ball_x += ball_dx;
-            ball_y += ball_dy;
+            ball.x += ball.dx;
+            ball.y += ball.dy;
             ball_frame++;
 
         } else {
@@ -115,7 +161,6 @@ int gameloop(int score_p1, int score_p2) {
     }
 
     endwin();
-
     return game_over;
 }
 
